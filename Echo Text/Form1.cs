@@ -112,8 +112,6 @@ namespace Echo_Text
             selectVoice();
         }
 
-        bool voicePlay = false;
-
         private void butSpeak_Click(object sender, EventArgs e)
         {
             try
