@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Speech.Synthesis;
+using System.IO;
 
 namespace Echo_Text
 {
@@ -27,29 +28,50 @@ namespace Echo_Text
             selectVoice();
         }
 
+        private string checkFiles(string filePath)
+        {
+            if (!File.Exists(filePath))
+            {
+                MessageBox.Show("Some system files were removed or deleted", "Echo Text", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                
+                return null;
+            }
+            else return filePath;
+        }
+
         private void appearence()
         {
-            if (Properties.Settings.Default.themeDark)
+            try
             {
-                butTheme.Image = Image.FromFile("Images\\ThemeLight.png");
-                this.BackColor = Color.FromArgb(100, 100, 100);
-                rtexContents.BackColor = Color.FromArgb(80, 80, 80);
-                rtexContents.ForeColor = Color.White;
-                butMale.BackColor = butFemale.BackColor = Color.FromArgb(80, 80, 80);
-                butMale.ForeColor = butFemale.ForeColor = Color.DarkGray;
+                if (Properties.Settings.Default.themeDark)
+                {
+                    butTheme.Image = Image.FromFile(checkFiles(Application.StartupPath + "\\Images\\ThemeLight.png"));
+                    this.BackColor = Color.FromArgb(100, 100, 100);
+                    rtexContents.BackColor = Color.FromArgb(80, 80, 80);
+                    rtexContents.ForeColor = Color.White;
+                    butMale.BackColor = butFemale.BackColor = Color.FromArgb(80, 80, 80);
+                    butMale.ForeColor = butFemale.ForeColor = Color.DarkGray;
+                }
+                else
+                {
+                    butTheme.Image = Image.FromFile(checkFiles(Application.StartupPath + "\\Images\\ThemeDark.png"));
+                    this.BackColor = Color.FromArgb(220, 220, 220);
+                    rtexContents.BackColor = Color.FromArgb(230, 230, 230);
+                    rtexContents.ForeColor = Color.Black;
+                    butMale.BackColor = butFemale.BackColor = Color.FromArgb(230, 230, 230);
+                    butMale.ForeColor = butFemale.ForeColor = Color.Gray;
+                }
+                butTheme.BackColor = butTheme.Parent.BackColor;
+                panContenteBack.BackColor = rtexContents.BackColor;
+                butSpeak.BackColor = butSpeak.Parent.BackColor;
+                butNew.BackColor = butNew.Parent.BackColor;
+                butPaste.BackColor = butPaste.Parent.BackColor;
+                butSaveVoice.BackColor = butSaveVoice.Parent.BackColor;
             }
-            else
+            catch (Exception ex)
             {
-                butTheme.Image = Image.FromFile("Images\\ThemeDark.png");
-                this.BackColor = Color.FromArgb(220, 220, 220);
-                rtexContents.BackColor = Color.FromArgb(230, 230, 230);
-                rtexContents.ForeColor = Color.Black;
-                butMale.BackColor = butFemale.BackColor = Color.FromArgb(230, 230, 230);
-                butMale.ForeColor = butFemale.ForeColor = Color.Gray;
+                MessageBox.Show(ex.Message, "Echo Text", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
-            butTheme.BackColor = butTheme.Parent.BackColor;
-            panContenteBack.BackColor = rtexContents.BackColor;
-            butSpeak.BackColor = butSpeak.Parent.BackColor;
         }
 
         private void selectVoice()
@@ -116,6 +138,13 @@ namespace Echo_Text
         {
             try
             {
+                if (string.IsNullOrEmpty(rtexContents.Text))
+                {
+                    if (MessageBox.Show("Please, Type or paste a text you wish to hear.\n\nDo you want to run a sample text?", "Echo Text", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
+                        rtexContents.Text = "This is a sample text 1 2 3";
+                    else
+                        return;
+                }
                 if (Properties.Settings.Default.voiceMale)
                 {
                     voice.SelectVoiceByHints(VoiceGender.Male);
@@ -124,7 +153,58 @@ namespace Echo_Text
                 {
                     voice.SelectVoiceByHints(VoiceGender.Female);
                 }
-                voice.SpeakAsync(rtexContents.Text);
+                if (string.IsNullOrEmpty(rtexContents.SelectedText)) voice.SpeakAsync(rtexContents.Text);
+                else voice.SpeakAsync(rtexContents.SelectedText);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Echo Text", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void butPlayPause_Click(object sender, EventArgs e)
+        {
+            voice.Pause();
+            voice = new SpeechSynthesizer();
+        }
+
+        private void butPaste_Click(object sender, EventArgs e)
+        {
+            rtexContents.Paste();
+        }
+
+        private void butSaveVoice_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(rtexContents.Text))
+                {
+                    if (MessageBox.Show("Please, Type or paste a text you wish to hear.\n\nDo you want to run a sample text?", "Echo Text", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
+                        rtexContents.Text = "This is a sample text 1 2 3";
+                    else
+                        return;
+                }
+
+                using (SaveFileDialog sfd = new SaveFileDialog())
+                {
+                    sfd.Filter = "Wave Files|*.wav";
+                    sfd.Title = "Save Voice as A Wave File";
+                    if (sfd.ShowDialog() == DialogResult.OK)
+                    {
+                        FileStream fs = new FileStream(sfd.FileName, FileMode.Create, FileAccess.Write);
+                        if (Properties.Settings.Default.voiceMale)
+                        {
+                            voice.SelectVoiceByHints(VoiceGender.Male);
+                        }
+                        else
+                        {
+                            voice.SelectVoiceByHints(VoiceGender.Female);
+                        }
+                        voice.SetOutputToWaveStream(fs);
+                        if (string.IsNullOrEmpty(rtexContents.SelectedText)) voice.Speak(rtexContents.Text);
+                        else voice.Speak(rtexContents.SelectedText);
+                    }
+                }
             }
             catch (Exception ex)
             {
