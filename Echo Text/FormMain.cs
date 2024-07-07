@@ -33,7 +33,7 @@ namespace Echo_Text
             if (!File.Exists(filePath))
             {
                 MessageBox.Show("Some system files were removed or deleted", "Echo Text", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                
+                Application.Exit();
                 return null;
             }
             else return filePath;
